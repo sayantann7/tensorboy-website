@@ -290,12 +290,14 @@ const Hero = () => {
             </div>
 
             <div ref={buttonRef}>
-              <Button
+              <a href="#redpill">
+                <Button
   id="red-pill-button"
   title="Take the Red Pill"
   leftIcon={<TiLocationArrow />}
   containerClass="bg-[#ff0c00] flex-center gap-1 text-black hover:bg-[#ff0c00]/80 hover:scale-105 transform transition-all duration-300"
 />
+              </a>
             </div>
           </div>
         </div>
