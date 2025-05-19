@@ -4,6 +4,7 @@ import { useWindowScroll } from "react-use";
 import { useEffect, useRef, useState } from "react";
 import { TiLocationArrow } from "react-icons/ti";
 import { FaPlay, FaPause } from "react-icons/fa";
+import { HiMenu, HiX } from "react-icons/hi"; // Import hamburger and close icons
 
 import Button from "./Button";
 
@@ -15,10 +16,12 @@ const NavBar = () => {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isIndicatorActive, setIsIndicatorActive] = useState(true);
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Add state for mobile menu
 
   // Refs for audio and navigation container
   const audioElementRef = useRef(null);
   const navContainerRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   const { y: currentScrollY } = useWindowScroll();
   const [isNavVisible, setIsNavVisible] = useState(true);
@@ -31,6 +34,16 @@ const NavBar = () => {
     }
     setIsAudioPlaying((prev) => !prev);
     setIsIndicatorActive((prev) => !prev);
+  };
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => !prev);
+  };
+
+  // Close mobile menu when a link is clicked
+  const handleNavItemClick = () => {
+    setIsMobileMenuOpen(false);
   };
 
   // Initialize audio on component mount and first user interaction
@@ -50,34 +63,25 @@ const NavBar = () => {
             console.log("Audio playback prevented by browser:", error);
           });
         }
-        
-        // Remove event listeners after successfully starting playback
-        document.removeEventListener('click', handleFirstInteraction);
-        document.removeEventListener('keydown', handleFirstInteraction);
-        document.removeEventListener('scroll', handleFirstInteraction);
       }
     };
 
-    // Add event listeners for first user interaction
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('keydown', handleFirstInteraction);
-    document.addEventListener('scroll', handleFirstInteraction);
+    document.addEventListener('click', handleFirstInteraction, { once: true });
+    document.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
     return () => {
       document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-      document.removeEventListener('scroll', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
     };
-  }, []);
+  }, [audioInitialized]);
 
-  // Manage audio playback
+  // Control audio playback based on state
   useEffect(() => {
     if (!audioElementRef.current) return;
-    
+
     if (isAudioPlaying) {
       const playPromise = audioElementRef.current.play();
-      // Handle potential promise rejection due to browser autoplay policy
-      if (playPromise !== undefined) {
+      if (playPromise) {
         playPromise.catch(error => {
           console.log("Audio playback prevented by browser:", error);
         });
@@ -113,6 +117,27 @@ const NavBar = () => {
     });
   }, [isNavVisible]);
 
+  // Animation for mobile menu
+  useEffect(() => {
+    if (!mobileMenuRef.current) return;
+    
+    if (isMobileMenuOpen) {
+      gsap.to(mobileMenuRef.current, {
+        y: 0,
+        opacity: 1,
+        duration: 0.3,
+        ease: "power2.out"
+      });
+    } else {
+      gsap.to(mobileMenuRef.current, {
+        y: -20,
+        opacity: 0,
+        duration: 0.2,
+        ease: "power2.in"
+      });
+    }
+  }, [isMobileMenuOpen]);
+
   return (
     <div
       ref={navContainerRef}
@@ -128,11 +153,11 @@ const NavBar = () => {
 
             <a href="#contact">
               <Button
-              id="schedule-button"
-              title="Schedule a Call"
-              rightIcon={<TiLocationArrow />}
-              containerClass="bg-[#ff0c00] text-dark-100 md:flex hidden items-center justify-center gap-1 hover:bg-[#ff0c00]/80"
-            />
+                id="schedule-button"
+                title="Schedule a Call"
+                rightIcon={<TiLocationArrow />}
+                containerClass="bg-[#ff0c00] text-dark-100 md:flex hidden items-center justify-center gap-1 hover:bg-[#ff0c00]/80"
+              />
             </a>
           </div>
 
@@ -149,6 +174,15 @@ const NavBar = () => {
                 </a>
               ))}
             </div>
+
+            {/* Mobile Menu Toggle Button */}
+            <button 
+              className="md:hidden text-[#ff0c00] ml-4 text-2xl"
+              onClick={toggleMobileMenu}
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <HiX /> : <HiMenu />}
+            </button>
 
             <button
               onClick={toggleAudioIndicator}
@@ -183,6 +217,30 @@ const NavBar = () => {
           </div>
         </nav>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      <div 
+        ref={mobileMenuRef}
+        className={`absolute top-16 left-0 w-full bg-dark-200/95 backdrop-blur-md border-b border-[#ff0c00]/40 py-4 px-6 rounded-b-lg shadow-lg transform opacity-0 -translate-y-4 z-40 ${isMobileMenuOpen ? 'flex' : 'hidden'} flex-col`}
+      >
+        {navItems.map((item, index) => (
+          <a
+            key={index}
+            href={`#${item.toLowerCase()}`}
+            className="py-3 text-[#ff0c00] font-general text-sm uppercase border-b border-[#ff0c00]/20 last:border-b-0"
+            onClick={handleNavItemClick}
+          >
+            {item}
+          </a>
+        ))}
+        <a 
+          href="#contact"
+          className="mt-4 text-center text-dark-100 bg-[#ff0c00] py-2 rounded-md font-medium"
+          onClick={handleNavItemClick}
+        >
+          Schedule a Call
+        </a>
+      </div>
     </div>
   );
 };
